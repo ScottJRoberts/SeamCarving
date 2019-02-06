@@ -1,3 +1,8 @@
 {
-    "C_Cpp.intelliSenseEngineFallback": "Enabled"
+    "C_Cpp.intelliSenseEngineFallback": "Enabled",
+    "files.exclude": {
+        "**.exe": true,
+        "**/.exe": true,
+        "**/.out": true
+    }
 }

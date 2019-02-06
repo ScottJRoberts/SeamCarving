@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${/usr/local/Cellar/opencv/**}",
-                "/usr/local/Cellar/opencv/4.0.1/include/opencv4"
+                "/usr/local/Cellar/opencv/4.0.1/include/opencv4",
+                "/System/Library/Frameworks/Tk.framework/Versions/8.5/Headers"
             ],
             "defines": [],
             "macFrameworkPath": [
