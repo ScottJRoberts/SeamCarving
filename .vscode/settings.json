@@ -4,5 +4,11 @@
         "**.exe": true,
         "**/.exe": true,
         "**/.out": true
+    },
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "iosfwd": "cpp",
+        "vector": "cpp",
+        "istream": "cpp"
     }
 }
