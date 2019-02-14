@@ -2,8 +2,8 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-// #include <ImageMagick-7>
-
+#include<tuple>
+#include <algorithm> 
 #include <sstream>      /*string stream*/
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
@@ -12,8 +12,15 @@
 using namespace cimg_library;
 using namespace std;
 
+int printVec(vector<int> vec){
+  for (int col = 0; col < static_cast<int>(vec.size()); col ++){
+    cout << vec[col] << " ";
+
+  } cout <<"\n";
+  return 0;
+}
+
 int printVector(vector<vector<int> > matrix){
-  cout<<"PRINTING VECTOR";
     int size = static_cast<int>(matrix.size());
     for( int col = 0; col < size; col ++) {
           int innerSize = static_cast<int>(matrix[0].size());
@@ -43,19 +50,116 @@ void write_pgm(vector<vector<int> > greyscale){
     fprintf(pgmimg, "%d %d \n", width, height);  
   
     // Writing the maximum gray value 
-    fprintf(pgmimg, " 255");  
-    int count = 0; 
-    for (i = 0; i < height; i++) { 
-        for (j = 0; j < width; j++) { 
-            temp = greyscale[i][j];
+    fprintf(pgmimg, " 255\n");  
+    for (i = 0; i < width; i++) { 
+        for (j = 0; j < height; j++) {
+            temp = greyscale[j][i];
   
             // Writing the gray values in the 2D array to the file 
             fprintf(pgmimg, "%d\n", temp); 
         } 
-        fprintf(pgmimg, "\n"); 
     } 
     fclose(pgmimg); 
 } 
+
+vector<int> chaseBack(vector<vector<int> > accums, int col){
+
+  vector<int> path;
+  int max = static_cast<int>(accums.size());
+  
+  int count = 1;
+  path.push_back(col);
+  int width = static_cast<int>(accums[0].size());
+  int current = col;
+
+  while (max>count){
+    vector<int> row = accums[count];
+    // printVec(row);
+    // cout <<"current is " <<current <<"\n";
+    int left = INT_MAX;
+    int right = INT_MAX;
+    if (current>0){
+      left = row[current-1];
+    }
+    if (current< (width-1)){
+      right = row[current+1];
+    }
+    if (right<left){
+      if (right<row[current]){
+        current+=1;
+        path.push_back(current);
+      } else {
+        path.push_back(current);
+      }
+    } else if (left< row[current]){
+      current-=1;
+      path.push_back(current);
+    } else{
+      path.push_back(current);
+    }
+    count +=1;
+  
+  }
+  return path;
+}
+
+
+
+int getLowestBelow(vector<int> below, int col){
+  int left = INT_MAX;
+  int right = INT_MAX;
+
+  if (col > 0){
+    left = below[col-1];
+  }
+  if ((col+1) < static_cast<int>(below.size())){
+    right = below[col+1];
+  }
+
+  return min({left, right, below[col]});
+
+}
+
+vector<vector<int> > accumulations_creator(vector<vector<int> > energies) {
+  int width = static_cast<int>(energies.size());
+  int height = static_cast<int>(energies[0].size());
+
+  vector<vector<int> > results;
+  vector<int> prevRow(width, 0);
+  results.insert(results.begin(),prevRow);
+
+  for (int row = (width -2); row> -1; row --){
+    vector<int> currentRow;
+    for (int col= (height-1); col>-1; col--){
+      int newBit =getLowestBelow(prevRow,col);
+      currentRow.push_back(newBit+energies[row][col]);
+      
+    }
+    prevRow = currentRow;
+    results.insert(results.begin(),prevRow);
+  }
+
+  return results;
+
+}
+
+vector<int> seamPathfinder(vector<vector<int> > accumulations){
+  vector<int> topRow = accumulations[0];
+  int lowest = topRow[0];
+  int col = 0;
+  vector<int> results;
+
+  for (int i =1; i< static_cast<int>(topRow.size()); i++){
+    if (topRow[i]<lowest){
+      lowest = topRow[i];
+      col = i;
+    }
+  }
+
+  results.push_back(col);
+  return chaseBack(accumulations, col);
+
+}
 
 vector<vector<int> > energy_data(CImg<unsigned char> image){
   
@@ -69,9 +173,9 @@ vector<vector<int> > energy_data(CImg<unsigned char> image){
   for(row = 0;row<width; row ++) {
     for(col =0; col<height; col++){
       //cout <<"pixel is " <<static_cast<int>(image.atXY(row,col))<<"\n";
-      diffx = abs(image.atXY(col, row) - image.atXY(col, row+1));
-      diffy = abs(image.atXY(col, row) - image.atXY(col+1, row));
-      diffxy = abs(image.atXY(col, row) - image.atXY(col+1, row+1));
+      diffx = abs((int)image.atXY(col, row) - (int)image.atXY(col, row+1));
+      diffy = abs((int)image.atXY(col, row) - (int)image.atXY(col+1, row));
+      diffxy = abs((int)image.atXY(col, row) - (int)image.atXY(col+1, row+1));
       tempPixel = diffx +diffy + diffxy;
 
       if (tempPixel>255)
@@ -108,17 +212,29 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
 
 
 int main() {
-  CImg<unsigned char> bwImage("testLandscape.pgm");
-  CImg<unsigned char> image("test.pgm");
+  CImg<unsigned char> bwImage("test.pgm");
+  // CImg<unsigned char> image("test.pgm");
   vector<vector<int> > test = energy_data(bwImage);
-  vector<vector<int> > test2 = writeIntoVector(bwImage);
-  write_pgm(test);
+  cout <<"Photo info \n";
+  vector<vector<int> > indo = writeIntoVector(bwImage);
+  printVector(indo);
+  cout <<"Energy info \n";
+  printVector(test);
+  vector<vector<int> > test2 = accumulations_creator(test);
+  cout << "Path Info\n";
+  printVector(test2);
+  cout << "Checking path\n";
+  vector<int> path = seamPathfinder(test2);
+  cout <<"\npath\n";
+  printVec(path);
+  cout << "size " << path.size() <<"\n";
+  // write_pgm(test);
 
-  CImg<unsigned char>output("pgmimg.pgm");
+  // CImg<unsigned char>output("pgmimg.pgm");
 
-  CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
-  while (!main_disp.is_closed()) {
-    main_disp.wait();
-    }
+  // CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
+  // while (!main_disp.is_closed()) {
+  //   main_disp.wait();
+  //   }
   return 0;
 }

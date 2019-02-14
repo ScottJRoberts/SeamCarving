@@ -10,6 +10,9 @@
         "iosfwd": "cpp",
         "vector": "cpp",
         "istream": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "__split_buffer": "cpp",
+        "list": "cpp",
+        "string": "cpp"
     }
 }
