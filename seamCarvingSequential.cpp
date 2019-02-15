@@ -12,6 +12,13 @@
 using namespace cimg_library;
 using namespace std;
 
+int printCImg(CImg<unsigned char> img){
+  cimg_forXY(img,x,y){
+    cout << (int)img.atXY(x,y) << " ";
+  }
+  return 1;
+}
+
 int printVec(vector<int> vec){
   for (int col = 0; col < static_cast<int>(vec.size()); col ++){
     cout << vec[col] << " ";
@@ -51,9 +58,9 @@ void write_pgm(vector<vector<int> > greyscale){
   
     // Writing the maximum gray value 
     fprintf(pgmimg, " 255\n");  
-    for (i = 0; i < width; i++) { 
-        for (j = 0; j < height; j++) {
-            temp = greyscale[j][i];
+    for (i = 0; i < height; i++) { 
+        for (j = 0; j < width; j++) {
+            temp = greyscale[i][j];
   
             // Writing the gray values in the 2D array to the file 
             fprintf(pgmimg, "%d\n", temp); 
@@ -170,8 +177,8 @@ vector<vector<int> > energy_data(CImg<unsigned char> image){
 
   vector<vector<int> > results(width, vector<int>(height));
   
-  for(row = 0;row<width; row ++) {
-    for(col =0; col<height; col++){
+  for(col =0; col<height; col++) {
+    for(row = 0;row<width; row ++){
       //cout <<"pixel is " <<static_cast<int>(image.atXY(row,col))<<"\n";
       diffx = abs((int)image.atXY(col, row) - (int)image.atXY(col, row+1));
       diffy = abs((int)image.atXY(col, row) - (int)image.atXY(col+1, row));
@@ -197,14 +204,24 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
   vector<vector<int> > results(width, vector<int>(height));
-  for(row = 0;row<width; row ++) {
-    for(col =0; col<height; col++){
-      tempPixel = image.atXY(col,row);
-      if (tempPixel>255)
-        tempPixel =255;
+  // for(row = 0;row<height; row ++) {
+  //   for(col =0; col<width; col++){
+  //     tempPixel = image.atXY(col,row);
+  //     if (tempPixel>255)
+  //       tempPixel =255;
 
-      results[row][col] = tempPixel;
-    }
+  //     results[row][col] = tempPixel;
+  //   }
+  // }
+  int count = 0;
+  row =0;
+  cimg_forXY(image,x,y) {
+  if (count>= width){
+    count =0;
+    row+=1;
+  }
+  results[row][count]= image.atXY(x,y);
+  count+=1;
   }
 
   return results;
@@ -212,29 +229,34 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
 
 
 int main() {
-  CImg<unsigned char> bwImage("test.pgm");
-  // CImg<unsigned char> image("test.pgm");
-  vector<vector<int> > test = energy_data(bwImage);
+  CImg<unsigned char> bwImage("manta.pgm");
+  CImg<unsigned char> image("tester.pgm");
+  vector<vector<int> > test = energy_data(image);
+
   cout <<"Photo info \n";
-  vector<vector<int> > indo = writeIntoVector(bwImage);
+  printCImg(image);
+  cout <<"vector photo info";
+  vector<vector<int> > indo = writeIntoVector(image);
   printVector(indo);
   cout <<"Energy info \n";
   printVector(test);
-  vector<vector<int> > test2 = accumulations_creator(test);
+  vector<vector<int> > accumulations = accumulations_creator(test);
   cout << "Path Info\n";
-  printVector(test2);
+  printVector(accumulations);
   cout << "Checking path\n";
-  vector<int> path = seamPathfinder(test2);
+  vector<int> path = seamPathfinder(accumulations);
   cout <<"\npath\n";
   printVec(path);
   cout << "size " << path.size() <<"\n";
-  // write_pgm(test);
+  write_pgm(test);
 
-  // CImg<unsigned char>output("pgmimg.pgm");
+  vector<vector<int> > test2 = energy_data(bwImage);
+  write_pgm(test2);
 
-  // CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
-  // while (!main_disp.is_closed()) {
-  //   main_disp.wait();
-  //   }
+  CImg<unsigned char>output("pgmimg.pgm");
+  CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
+  while (!main_disp.is_closed()) {
+     main_disp.wait();
+   }
   return 0;
 }
