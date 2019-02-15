@@ -41,12 +41,10 @@ int printVector(vector<vector<int> > matrix){
 
 }
 
-void write_pgm(vector<vector<int> > greyscale){ 
+void write_pgm(vector<vector<int> > greyscale, CImg<unsigned char> image){ 
     int i, j, temp = 0; 
     int width = static_cast<int>(greyscale.size());
     int height = static_cast<int>(greyscale[0].size());
-
-  
     FILE* pgmimg; 
     pgmimg = fopen("pgmimg.pgm", "wb"); 
   
@@ -58,14 +56,10 @@ void write_pgm(vector<vector<int> > greyscale){
   
     // Writing the maximum gray value 
     fprintf(pgmimg, " 255\n");  
-    for (i = 0; i < height; i++) { 
-        for (j = 0; j < width; j++) {
-            temp = greyscale[i][j];
-  
-            // Writing the gray values in the 2D array to the file 
-            fprintf(pgmimg, "%d\n", temp); 
-        } 
-    } 
+    cimg_forXY(image,x,y){
+      temp = greyscale[x][y];
+      fprintf(pgmimg, "%d\n", temp);
+    }
     fclose(pgmimg); 
 } 
 
@@ -176,22 +170,16 @@ vector<vector<int> > energy_data(CImg<unsigned char> image){
   height = static_cast<int>(image.height());
 
   vector<vector<int> > results(width, vector<int>(height));
-  
-  for(col =0; col<height; col++) {
-    for(row = 0;row<width; row ++){
-      //cout <<"pixel is " <<static_cast<int>(image.atXY(row,col))<<"\n";
-      diffx = abs((int)image.atXY(col, row) - (int)image.atXY(col, row+1));
-      diffy = abs((int)image.atXY(col, row) - (int)image.atXY(col+1, row));
-      diffxy = abs((int)image.atXY(col, row) - (int)image.atXY(col+1, row+1));
-      tempPixel = diffx +diffy + diffxy;
+  cimg_forXY(image,x,y){
+    diffx = abs((int)image.atXY(x, y) - (int)image.atXY(x, y+1));
+    diffy = abs((int)image.atXY(x, y) - (int)image.atXY(x+1, y));
+    diffxy = abs((int)image.atXY(x, y) - (int)image.atXY(x+1, y+1));
+    tempPixel = diffx +diffy + diffxy;
 
-      if (tempPixel>255)
+    if (tempPixel>255)
         tempPixel =255;
 
-      results[row][col] = tempPixel;
-      //row_vec.push_back(holder[row][col]);
-    }
-    //results.push_back(row_vec);
+      results[x][y] = tempPixel;
   }
 
   return results;
@@ -229,7 +217,7 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
 
 
 int main() {
-  CImg<unsigned char> bwImage("manta.pgm");
+  CImg<unsigned char> bwImage("testMountain.pgm");
   CImg<unsigned char> image("tester.pgm");
   vector<vector<int> > test = energy_data(image);
 
@@ -248,10 +236,10 @@ int main() {
   cout <<"\npath\n";
   printVec(path);
   cout << "size " << path.size() <<"\n";
-  write_pgm(test);
+  write_pgm(test, image);
 
   vector<vector<int> > test2 = energy_data(bwImage);
-  write_pgm(test2);
+  write_pgm(test2, bwImage);
 
   CImg<unsigned char>output("pgmimg.pgm");
   CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
