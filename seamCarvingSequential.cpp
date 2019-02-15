@@ -43,7 +43,7 @@ int printVector(vector<vector<int> > matrix){
 }
 
 void write_pgm(vector<vector<int> > greyscale, CImg<unsigned char> image){ 
-    int i, j, temp = 0; 
+    int temp = 0; 
     int width = static_cast<int>(greyscale.size());
     int height = static_cast<int>(greyscale[0].size());
     FILE* pgmimg; 
@@ -131,7 +131,42 @@ vector<vector<int> > removeSeam(vector<int> path, vector<vector<int> > data){
   return data;
 }
 
+//TODO erase data vertically
+vector<vector<int> > removeSeam_vertical(vector<int> path, vector<vector<int> > data){
+  int count = 0;
+  for (int row =0; row < (int) data.size(); row++){
+    data[row].erase(data[row].begin()+path[count]);
+    count+=1;
+  }
+  return data;
+}
+
 vector<vector<int> > accumulations_creator(vector<vector<int> > energies) {
+  int width = static_cast<int>(energies.size());
+  int height = static_cast<int>(energies[0].size());
+
+  vector<vector<int> > results;
+  vector<int> prevRow(width, 0);
+  results.insert(results.begin(),prevRow);
+
+  for (int row = (width -2); row> -1; row --){
+    vector<int> currentRow;
+    for (int col= (height-1); col>-1; col--){
+      int newBit =getLowestBelow(prevRow,col);
+      currentRow.push_back(newBit+energies[row][col]);
+      
+    }
+    prevRow = currentRow;
+    results.insert(results.begin(),prevRow);
+  }
+
+  return results;
+
+}
+
+
+//TODO: build a horizontal check needs to check left upper, left, left lower and move across
+vector<vector<int> > accumulations_creator_horizontal(vector<vector<int> > energies) {
   int width = static_cast<int>(energies.size());
   int height = static_cast<int>(energies[0].size());
 
@@ -174,7 +209,7 @@ vector<int> seamPathfinder(vector<vector<int> > accumulations){
 
 vector<vector<int> > energy_data(CImg<unsigned char> image){
   
-  int row, col, diffx, diffy, diffxy, width, height;
+  int diffx, diffy, diffxy, width, height;
   int tempPixel;
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
@@ -197,21 +232,11 @@ vector<vector<int> > energy_data(CImg<unsigned char> image){
 
 vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
   
-  int width, height, row, col;
-  int tempPixel;
+  int width, height;
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
 
   vector<vector<int> > results(width, vector<int>(height));
-  // for(row = 0;row<height; row ++) {
-  //   for(col =0; col<width; col++){
-  //     tempPixel = image.atXY(col,row);
-  //     if (tempPixel>255)
-  //       tempPixel =255;
-
-  //     results[row][col] = tempPixel;
-  //   }
-  // }
   cimg_forXY(image,x,y) {
   results[x][y]= image.atXY(x,y);
   }
@@ -237,14 +262,15 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
 }
 
 int main() {
-  CImg<unsigned char> bwImage("testMountain.pgm");
+  CImg<unsigned char> bwImage("TestLandscape.pgm");
   double start = omp_get_wtime();
-  carveSeam(bwImage, 100);
+  int numSeams = 200;
+  carveSeam(bwImage, numSeams);
   double end = omp_get_wtime();
 
-  cout<<"Total time for 100 seams is " << end-start <<"\n";
+  cout<<"Total time for " << numSeams <<" seams is " << end-start <<"\n";
   CImg<unsigned char>output("pgmimg.pgm");
-  CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
+  CImgDisplay main_disp(output,"Carved Image"), other_dip(bwImage, "Original Image");
   while (!main_disp.is_closed()) {
      main_disp.wait();
    }
