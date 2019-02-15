@@ -8,6 +8,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include "CImg.h"
+#include "omp.h"
 
 using namespace cimg_library;
 using namespace std;
@@ -237,7 +238,11 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
 
 int main() {
   CImg<unsigned char> bwImage("testMountain.pgm");
+  double start = omp_get_wtime();
   carveSeam(bwImage, 100);
+  double end = omp_get_wtime();
+
+  cout<<"Total time for 100 seams is " << end-start <<"\n";
   CImg<unsigned char>output("pgmimg.pgm");
   CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
   while (!main_disp.is_closed()) {
