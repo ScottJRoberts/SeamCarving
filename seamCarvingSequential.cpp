@@ -121,6 +121,15 @@ int getLowestBelow(vector<int> below, int col){
 
 }
 
+vector<vector<int> > removeSeam(vector<int> path, vector<vector<int> > data){
+  int count = 0;
+  for (int row =0; row < (int) data.size(); row++){
+    data[row].erase(data[row].begin()+path[count]);
+    count+=1;
+  }
+  return data;
+}
+
 vector<vector<int> > accumulations_creator(vector<vector<int> > energies) {
   int width = static_cast<int>(energies.size());
   int height = static_cast<int>(energies[0].size());
@@ -191,6 +200,7 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
   int tempPixel;
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
+
   vector<vector<int> > results(width, vector<int>(height));
   // for(row = 0;row<height; row ++) {
   //   for(col =0; col<width; col++){
@@ -201,46 +211,33 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
   //     results[row][col] = tempPixel;
   //   }
   // }
-  int count = 0;
-  row =0;
   cimg_forXY(image,x,y) {
-  if (count>= width){
-    count =0;
-    row+=1;
-  }
-  results[row][count]= image.atXY(x,y);
-  count+=1;
+  results[x][y]= image.atXY(x,y);
   }
 
   return results;
 }
 
+CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
+  vector<vector<int> > data = writeIntoVector(image);
+  write_pgm(data, image);
+  while (cuts>0){
+    CImg<unsigned char> editableImage("pgmimg.pgm");
+    vector<vector<int> > energy = energy_data(editableImage);
+    
+    vector<vector<int> > accumulations = accumulations_creator(energy);
+    vector<int> path = seamPathfinder(accumulations);
+    data = removeSeam(path, data);
+    cuts--;
+    write_pgm(data, editableImage);
+  }
+  CImg<unsigned char> fixedImage("pgmimg.pgm");
+  return fixedImage;
+}
 
 int main() {
   CImg<unsigned char> bwImage("testMountain.pgm");
-  CImg<unsigned char> image("tester.pgm");
-  vector<vector<int> > test = energy_data(image);
-
-  cout <<"Photo info \n";
-  printCImg(image);
-  cout <<"vector photo info";
-  vector<vector<int> > indo = writeIntoVector(image);
-  printVector(indo);
-  cout <<"Energy info \n";
-  printVector(test);
-  vector<vector<int> > accumulations = accumulations_creator(test);
-  cout << "Path Info\n";
-  printVector(accumulations);
-  cout << "Checking path\n";
-  vector<int> path = seamPathfinder(accumulations);
-  cout <<"\npath\n";
-  printVec(path);
-  cout << "size " << path.size() <<"\n";
-  write_pgm(test, image);
-
-  vector<vector<int> > test2 = energy_data(bwImage);
-  write_pgm(test2, bwImage);
-
+  carveSeam(bwImage, 100);
   CImg<unsigned char>output("pgmimg.pgm");
   CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
   while (!main_disp.is_closed()) {
