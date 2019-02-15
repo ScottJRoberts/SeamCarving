@@ -151,12 +151,13 @@ vector<vector<int> > accumulations_creator(vector<vector<int> > energies) {
   vector<int> prevRow(width, 0);
   results.insert(results.begin(),prevRow);
 
-  //@TODO parallel this, possible collapse statement
   for (int row = (width -2); row> -1; row --){
-    vector<int> currentRow;
+    vector<int> currentRow(height);
+    #pragma omp parallel for collapse(1)
     for (int col= (height-1); col>-1; col--){
       int newBit =getLowestBelow(prevRow,col);
-      currentRow.push_back(newBit+energies[row][col]);
+      currentRow[col]=newBit+energies[row][col];
+      //results[col][row] = newBit;
       
     }
     prevRow = currentRow;
@@ -249,6 +250,7 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
 
   return results;
 }
+
 
 CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
   vector<vector<int> > data = writeIntoVector(image);
