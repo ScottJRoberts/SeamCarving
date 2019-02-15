@@ -8,7 +8,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include "CImg.h"
-#include "omp.h"
+//#include "omp.h"
 
 using namespace cimg_library;
 using namespace std;
@@ -236,13 +236,16 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
   return fixedImage;
 }
 
-int main() {
-  CImg<unsigned char> bwImage("testMountain.pgm");
-  double start = omp_get_wtime();
+int main(int argc, char *argv[])
+{
+    //std::cout << "Please enter an image filename to create a thumbnail for: ";
+   // std::string filename;
+  CImg<unsigned char> bwImage(argv[1]);
+ // double start = omp_get_wtime();
   carveSeam(bwImage, 100);
-  double end = omp_get_wtime();
+  //double end = omp_get_wtime();
 
-  cout<<"Total time for 100 seams is " << end-start <<"\n";
+  //cout<<"Total time for 100 seams is " << end-start <<"\n";
   CImg<unsigned char>output("pgmimg.pgm");
   CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
   while (!main_disp.is_closed()) {
