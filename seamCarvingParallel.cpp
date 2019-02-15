@@ -58,9 +58,11 @@ void write_pgm(vector<vector<int> > greyscale, CImg<unsigned char> image){
     // Writing the maximum gray value 
     fprintf(pgmimg, " 255\n"); 
     //@TODO parallel this 
-    cimg_forXY(image,x,y){
-      temp = greyscale[x][y];
-      fprintf(pgmimg, "%d\n", temp);
+    for (int y = 0; y<image.height(); y++){
+      for (int x = 0; x< image.width(); x++){
+        temp = greyscale[x][y];
+        fprintf(pgmimg, "%d\n", temp);
+    }
     }
     fclose(pgmimg); 
 } 
@@ -199,7 +201,6 @@ vector<int> seamPathfinder(vector<vector<int> > accumulations){
   int col = 0;
   vector<int> results;
 
-  //@TODO parallel this, kinda need a critical section might not be worth it
   for (int i =1; i< static_cast<int>(topRow.size()); i++){
     if (topRow[i]<lowest){
       lowest = topRow[i];
@@ -214,15 +215,16 @@ vector<int> seamPathfinder(vector<vector<int> > accumulations){
 
 vector<vector<int> > energy_data(CImg<unsigned char> image){
   
-  int diffx, diffy, diffxy, width, height;
-  int tempPixel;
+  int tempPixel,diffx, diffy, diffxy, width, height;
+  
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
 
   //@TODO parallel this, RACE CONDITIONS
-  vector<vector<int> > results(width, vector<int>(height));
-  cimg_forXY(image,x,y){
-    diffx = abs((int)image.atXY(x, y) - (int)image.atXY(x, y+1));
+  vector<vector<int> > results(width, vector<int>(height,0));
+  for (int y = 0; y<image.height(); y++){
+    for (int x = 0; x< image.width(); x++){
+      diffx = abs((int)image.atXY(x, y) - (int)image.atXY(x, y+1));
     diffy = abs((int)image.atXY(x, y) - (int)image.atXY(x+1, y));
     diffxy = abs((int)image.atXY(x, y) - (int)image.atXY(x+1, y+1));
     tempPixel = diffx +diffy + diffxy;
@@ -231,6 +233,7 @@ vector<vector<int> > energy_data(CImg<unsigned char> image){
         tempPixel =255;
 
       results[x][y] = tempPixel;
+    }
   }
 
   return results;
@@ -244,8 +247,10 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
 
   vector<vector<int> > results(width, vector<int>(height));
   //@TODO parallel this (how can we parallel the for work with this??)
-  cimg_forXY(image,x,y) {
+  for (int y = 0; y<image.height(); y++){
+    for (int x = 0; x< image.width(); x++){
   results[x][y]= image.atXY(x,y);
+  }
   }
 
   return results;
@@ -274,9 +279,10 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
 }
 
 int main() {
-  CImg<unsigned char> bwImage("TestLandscape.pgm");
+  CImg<unsigned char> bwImage("TestRectangle.pgm");
   double start = omp_get_wtime();
-  int numSeams = 200;
+  
+  int numSeams = bwImage.height()/2;
   carveSeam(bwImage, numSeams);
   double end = omp_get_wtime();
 
