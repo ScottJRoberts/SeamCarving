@@ -261,10 +261,11 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
   return fixedImage;
 }
 
-int main() {
-  CImg<unsigned char> bwImage("TestLandscape.pgm");
+int main(int argc, char *argv[]) {
+  CImg<unsigned char> bwImage(argv[1]);
   double start = omp_get_wtime();
-  int numSeams = 200;
+  int numSeams;
+  cin >> numSeams;
   carveSeam(bwImage, numSeams);
   double end = omp_get_wtime();
 

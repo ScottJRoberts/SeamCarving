@@ -128,6 +128,8 @@ int getLowestBelow(vector<int> below, int col){
 vector<vector<int> > removeSeam(vector<int> path, vector<vector<int> > data){
   int count = 0;
   //@TODO parallel this (RACE CONDITION POSSIBLE)
+
+
   for (int row =0; row < (int) data.size(); row++){
     data[row].erase(data[row].begin()+path[count]);
     count+=1;
@@ -222,6 +224,8 @@ vector<vector<int> > energy_data(CImg<unsigned char> image){
 
   //@TODO parallel this, RACE CONDITIONS
   vector<vector<int> > results(width, vector<int>(height,0));
+  // #pragma omp parallel private(tempPixel)
+  // #pragma omp for collapse(2)
   for (int y = 0; y<image.height(); y++){
     for (int x = 0; x< image.width(); x++){
       diffx = abs((int)image.atXY(x, y) - (int)image.atXY(x, y+1));
@@ -278,11 +282,12 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
   return fixedImage;
 }
 
-int main() {
-  CImg<unsigned char> bwImage("TestRectangle.pgm");
+int main(int argc, char *argv[]) {
+  CImg<unsigned char> bwImage(argv[1]);
   double start = omp_get_wtime();
-  
-  int numSeams = bwImage.height()/2;
+  int numSeams;
+  cin >> numSeams;
+  double start = omp_get_wtime();
   carveSeam(bwImage, numSeams);
   double end = omp_get_wtime();
 
