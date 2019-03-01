@@ -5,4 +5,4 @@ To compile
 g++ -Wall -pedantic  -o imgTest seamCarvingSequential.cpp -O2 -lm -lpthread -I/usr/X11R6/include -L/usr/X11R6/lib -lm -lpthread -lX11 -std=c++11
 
 To run
-./imgTest
+./imgTest <filenameOfPhoto.pgm> <number of seams to remove>
