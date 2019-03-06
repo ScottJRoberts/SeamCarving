@@ -8,10 +8,11 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include "CImg.h"
+#include "omp.h"
 
 using namespace cimg_library;
 using namespace std;
-
+int paral=cimg::openmp_mode(1);
 int printCImg(CImg<unsigned char> img){
   cimg_forXY(img,x,y){
     cout << (int)img.atXY(x,y) << " ";
@@ -121,6 +122,15 @@ int getLowestBelow(vector<int> below, int col){
 
 }
 
+vector<vector<int> > removeSeam(vector<int> path, vector<vector<int> > data){
+  int count = 0;
+  for (int row =0; row < (int) data.size(); row++){
+    data[row].erase(data[row].begin()+path[count]);
+    count+=1;
+  }
+  return data;
+}
+
 vector<vector<int> > accumulations_creator(vector<vector<int> > energies) {
   int width = static_cast<int>(energies.size());
   int height = static_cast<int>(energies[0].size());
@@ -162,14 +172,18 @@ vector<int> seamPathfinder(vector<vector<int> > accumulations){
 
 }
 
+    
+
 vector<vector<int> > energy_data(CImg<unsigned char> image){
-  
+    
   int row, col, diffx, diffy, diffxy, width, height;
   int tempPixel;
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
 
   vector<vector<int> > results(width, vector<int>(height));
+
+ /*
   cimg_forXY(image,x,y){
     diffx = abs((int)image.atXY(x, y) - (int)image.atXY(x, y+1));
     diffy = abs((int)image.atXY(x, y) - (int)image.atXY(x+1, y));
@@ -181,8 +195,28 @@ vector<vector<int> > energy_data(CImg<unsigned char> image){
 
       results[x][y] = tempPixel;
   }
-
-  return results;
+  */
+#pragma omp parallel for
+    for (int x=0;x<width;x++)
+    {
+        #pragma omp parallel for
+        for (int y=0;y<height;y++)
+        {
+            diffx = abs((int)image.atXY(x, y) - (int)image.atXY(x, y+1));
+            diffy = abs((int)image.atXY(x, y) - (int)image.atXY(x+1, y));
+            diffxy = abs((int)image.atXY(x, y) - (int)image.atXY(x+1, y+1));
+            tempPixel = diffx +diffy + diffxy;
+            
+            if (tempPixel>255)
+                tempPixel =255;
+            
+            results[x][y] = tempPixel;
+        }
+    }
+  
+        return results;
+   
+  
 }
 
 vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
@@ -191,6 +225,7 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
   int tempPixel;
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
+
   vector<vector<int> > results(width, vector<int>(height));
   // for(row = 0;row<height; row ++) {
   //   for(col =0; col<width; col++){
@@ -201,50 +236,42 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
   //     results[row][col] = tempPixel;
   //   }
   // }
-  int count = 0;
-  row =0;
   cimg_forXY(image,x,y) {
-  if (count>= width){
-    count =0;
-    row+=1;
-  }
-  results[row][count]= image.atXY(x,y);
-  count+=1;
+  results[x][y]= image.atXY(x,y);
   }
 
   return results;
 }
 
+CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
+  vector<vector<int> > data = writeIntoVector(image);
+  write_pgm(data, image);
+  while (cuts>0){
+    CImg<unsigned char> editableImage("pgmimg.pgm");
+    vector<vector<int> > energy = energy_data(editableImage);
+    
+    vector<vector<int> > accumulations = accumulations_creator(energy);
+    vector<int> path = seamPathfinder(accumulations);
+    data = removeSeam(path, data);
+    cuts--;
+    write_pgm(data, editableImage);
+  }
+  CImg<unsigned char> fixedImage("pgmimg.pgm");
+  return fixedImage;
+}
 
 int main() {
-  CImg<unsigned char> bwImage("testMountain.pgm");
-  CImg<unsigned char> image("tester.pgm");
-  vector<vector<int> > test = energy_data(image);
+  CImg<unsigned char> bwImage("manta.pgm");
+  double start = omp_get_wtime();
+  carveSeam(bwImage, 100);
+  double end = omp_get_wtime();
 
-  cout <<"Photo info \n";
-  printCImg(image);
-  cout <<"vector photo info";
-  vector<vector<int> > indo = writeIntoVector(image);
-  printVector(indo);
-  cout <<"Energy info \n";
-  printVector(test);
-  vector<vector<int> > accumulations = accumulations_creator(test);
-  cout << "Path Info\n";
-  printVector(accumulations);
-  cout << "Checking path\n";
-  vector<int> path = seamPathfinder(accumulations);
-  cout <<"\npath\n";
-  printVec(path);
-  cout << "size " << path.size() <<"\n";
-  write_pgm(test, image);
-
-  vector<vector<int> > test2 = energy_data(bwImage);
-  write_pgm(test2, bwImage);
-
+  cout<<"Total time for 100 seams is " << end-start <<"\n";
   CImg<unsigned char>output("pgmimg.pgm");
   CImgDisplay main_disp(output,"energies"), other_dip(bwImage, "original");
   while (!main_disp.is_closed()) {
      main_disp.wait();
    }
+  
   return 0;
 }
