@@ -122,13 +122,13 @@ int getLowestBelow(vector<int> below, int col){
 
 }
 
-vector<vector<int> > removeSeam(vector<int> path, vector<vector<int> > data){
+void removeSeam(vector<int> path, vector<vector<int> > &data, vector<vector<int> > &energy  ){
   int count = 0;
   for (int row =0; row < (int) data.size(); row++){
     data[row].erase(data[row].begin()+path[count]);
+    energy[row].erase(energy[row].begin()+path[count]);
     count+=1;
   }
-  return data;
 }
 
 //TODO erase data vertically
@@ -247,25 +247,27 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image){
 CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts){
   vector<vector<int> > data = writeIntoVector(image);
   write_pgm(data, image);
+  CImg<unsigned char> editableImage("pgmimg.pgm");
+  vector<vector<int> > energy = energy_data(editableImage);
+
   while (cuts>0){
-    CImg<unsigned char> editableImage("pgmimg.pgm");
-    vector<vector<int> > energy = energy_data(editableImage);
-    
     vector<vector<int> > accumulations = accumulations_creator(energy);
     vector<int> path = seamPathfinder(accumulations);
-    data = removeSeam(path, data);
+    removeSeam(path, data, energy);
     cuts--;
-    write_pgm(data, editableImage);
+    
   }
+  write_pgm(data, editableImage);
   CImg<unsigned char> fixedImage("pgmimg.pgm");
   return fixedImage;
 }
 
 int main(int argc, char *argv[]) {
   CImg<unsigned char> bwImage(argv[1]);
-  double start = omp_get_wtime();
+ 
   int numSeams;
   cin >> numSeams;
+  double start = omp_get_wtime();
   carveSeam(bwImage, numSeams);
   double end = omp_get_wtime();
 
