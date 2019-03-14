@@ -102,7 +102,7 @@ vector<int> chaseBack(vector<vector<int> > accums, int col){
     } else{
       path.push_back(current);
     }
-    count +=1;
+    count ++;
   
   }
   return path;
@@ -125,12 +125,13 @@ int getLowestBelow(vector<int> below, int col){
 
 }
 
-void removeSeam(vector<int> path, vector<vector<int> > &data, vector<vector<int> > &energy  ){
+void removeSeam(vector<int> path, vector<vector<int> > &data, vector<vector<int> > &energy, vector<vector<int> > accum ){
   int count = 0;
   for (int row =0; row < (int) data.size(); row++){
     data[row].erase(data[row].begin()+path[count]);
     energy[row].erase(energy[row].begin()+path[count]);
-    count+=1;
+    accum[row].erase(accum[row].begin()+path[count]);
+    count++;
   }
 }
 
@@ -219,9 +220,8 @@ vector<vector<int> > energy_data(CImg<unsigned char> image, int threads){
   width = static_cast<int>(image.width());
   height = static_cast<int>(image.height());
 
-  //@TODO parallel this, RACE CONDITIONS
   vector<vector<int> > results(width, vector<int>(height,0));
-  //#pragma omp parallel 
+
   #pragma omp parallel for num_threads(threads) collapse(2) private(tempPixel) 
   for (int y = 0; y<image.height(); y++){
     for (int x = 0; x< image.width(); x++){
@@ -247,7 +247,6 @@ vector<vector<int> > writeIntoVector(CImg<unsigned char> image, int threads){
   height = static_cast<int>(image.height());
 
   vector<vector<int> > results(width, vector<int>(height));
-  //@TODO parallel this (how can we parallel the for work with this??)
   #pragma omp parallel for num_threads(threads) collapse(2) 
   for (int y = 0; y<image.height(); y++){
     for (int x = 0; x< image.width(); x++){
@@ -272,10 +271,10 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts, int threads){
   CImg<unsigned char> editableImage("pgmimg.pgm");
   vector<vector<int> > energy = energy_data(editableImage, threads);
   // vector< vector<vector<int> > > val;
+  vector<vector<int> > accumulations = accumulations_creator(energy,threads);
   while (cuts>0){
-    vector<vector<int> > accumulations = accumulations_creator(energy,threads);
     vector<int> path = seamPathfinder(accumulations);
-    removeSeam(path, data, energy);
+    removeSeam(path, data, energy, accumulations);
     cuts--;
   }
   write_pgm(data, editableImage);
@@ -286,28 +285,32 @@ CImg<unsigned char> carveSeam(CImg<unsigned char> image, int cuts, int threads){
 int main(int argc, char *argv[]) {
   CImg<unsigned char> bwImage(argv[1]);
   int numSeams;
-  cin >> numSeams;
-  int numThreads;
-  cin >> numThreads;
-  double start = omp_get_wtime();
-  carveSeam(bwImage, numSeams, numThreads);
-  double end = omp_get_wtime();
-  cout<<"Total time for " << numSeams <<" seams is"<< " using " << numThreads <<" number of threads is "  << end-start <<"\n";
+   cin >> numSeams;
+  //int numThreads=1;
+  // cin >> numThreads;
+  // double start = omp_get_wtime();
+  // carveSeam(bwImage, numSeams, numThreads);
+  // double end = omp_get_wtime();
+  // cout<<"Total time for " << numSeams <<" seams is"<< " using " << numThreads <<" number of threads is "  << end-start <<"\n";
+  // vector<double> times;
+  carveSeam(bwImage,numSeams, 6);
 
   // carveSeam(bwImage, 1, 1);
-  // while (numThreads <10) {
+  // while (numThreads <128) {
   //   double start = omp_get_wtime();
   // carveSeam(bwImage, numSeams, numThreads);
   // double end = omp_get_wtime();
+  // times.push_back(end-start);
 
-  // cout<<"Total time for " << numSeams <<" seams is"<< " using " << numThreads <<" number of threads is "  << end-start <<"\n";
-  // numThreads++;
+  // cout<< times[0]/(end-start)<<"\n";
+
+  // numThreads= numThreads*2;
   // }
   
   CImg<unsigned char>output("pgmimg.pgm");
   CImgDisplay main_disp(output,"Carved Image"), other_dip(bwImage, "Original Image");
-  // while (!main_disp.is_closed()) {
-  //    main_disp.wait();
-  //  }
+  while (!main_disp.is_closed()) {
+     main_disp.wait();
+   }
   return 0;
 }
